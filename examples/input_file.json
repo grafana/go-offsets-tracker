@@ -1,0 +1,38 @@
+{
+  "go": {
+    "versions": ">= 1.12",
+    "fields": {
+      "runtime.g": [
+        "goid"
+      ],
+      "net/http.Request": [
+        "Method",
+        "URL",
+        "RemoteAddr",
+        "ctx"
+      ],
+      "net/url.URL": [
+        "Path"
+      ]
+    }
+  },
+  "google.golang.org/grpc": {
+    "versions": ">= 1.3",
+    "fields": {
+      "google.golang.org/grpc/internal/transport.Stream": [
+        "method",
+        "id",
+        "ctx"
+      ],
+      "google.golang.org/grpc.ClientConn": [
+        "target"
+      ],
+      "golang.org/x/net/http2.MetaHeadersFrame": [
+        "Fields"
+      ],
+      "golang.org/x/net/http2.FrameHeader": [
+        "StreamID"
+      ]
+    }
+  }
+}
