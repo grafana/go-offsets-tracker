@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/grafana/go-offsets-tracker/pkg/schema"
+	"github.com/grafana/go-offsets-tracker/pkg/offsets"
 
 	"github.com/hashicorp/go-version"
 
@@ -40,7 +40,7 @@ func main() {
 	inputBytes, err := os.ReadFile(*inputFile)
 	exitOnErr(err, "reading input file")
 
-	ilibs := schema.InputLibs{}
+	ilibs := offsets.InputLibs{}
 	exitOnErr(
 		json.Unmarshal(inputBytes, &ilibs),
 		"parsing input file")
@@ -51,7 +51,7 @@ func main() {
 	}
 
 	for k, v := range ilibs {
-		if k == schema.GoStdLib {
+		if k == offsets.GoStdLib {
 			continue
 		}
 		if l := processThirdPartyLib(k, v, outFile); l != nil {
@@ -68,8 +68,8 @@ func main() {
 	log.Println("Done!")
 }
 
-func processGoStdlib(input schema.InputLibs, outFileName string) *target.Result {
-	goLib, ok := input[schema.GoStdLib]
+func processGoStdlib(input offsets.InputLibs, outFileName string) *target.Result {
+	goLib, ok := input[offsets.GoStdLib]
 	if !ok {
 		return nil
 	}
@@ -85,7 +85,7 @@ func processGoStdlib(input schema.InputLibs, outFileName string) *target.Result 
 	return stdLibOffsets
 }
 
-func processThirdPartyLib(name string, lib schema.LibQuery, outFileName string) *target.Result {
+func processThirdPartyLib(name string, lib offsets.LibQuery, outFileName string) *target.Result {
 	tData := target.New(name, outFileName)
 
 	if lib.Versions != "" {

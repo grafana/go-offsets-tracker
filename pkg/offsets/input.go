@@ -1,4 +1,4 @@
-package schema
+package offsets
 
 const GoStdLib = "go"
 

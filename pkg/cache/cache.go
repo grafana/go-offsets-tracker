@@ -10,12 +10,12 @@ import (
 	"github.com/hashicorp/go-version"
 
 	"github.com/grafana/go-offsets-tracker/pkg/binary"
-	"github.com/grafana/go-offsets-tracker/pkg/schema"
+	"github.com/grafana/go-offsets-tracker/pkg/offsets"
 	"github.com/grafana/go-offsets-tracker/pkg/versions"
 )
 
 type Cache struct {
-	data *schema.TrackedOffsets
+	data *offsets.Track
 }
 
 func NewCache(prevOffsetFile string) *Cache {
@@ -32,7 +32,7 @@ func NewCache(prevOffsetFile string) *Cache {
 		return nil
 	}
 
-	var offsets schema.TrackedOffsets
+	var offsets offsets.Track
 	err = json.Unmarshal(data, &offsets)
 	if err != nil {
 		log.Printf("error parsing existing offsets file: %v Ignoring existing file.\n", err)
@@ -75,7 +75,7 @@ func (c *Cache) IsAllInCache(version string, dataMembers []*binary.DataMember) (
 
 // searchOffset searches an offset from the newest field whose version
 // is lower than or equal to the target version
-func searchOffset(field schema.TrackedField, targetVersion string) (uint64, bool) {
+func searchOffset(field offsets.Field, targetVersion string) (uint64, bool) {
 	target := versions.MustParse(targetVersion)
 
 	// Search from the newest version
