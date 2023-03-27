@@ -1,5 +1,9 @@
 # Change log
 
+## v0.1.1
+
+* Added Go handling methods to load and search offsets within the file
+
 ## v0.1.0
 
 * Initial release, mimicking the functionality of [this PR in the Open Telemetry repository](https://github.com/open-telemetry/opentelemetry-go-instrumentation/pull/45).

@@ -13,13 +13,13 @@ import (
 
 	"github.com/grafana/go-offsets-tracker/pkg/versions"
 
-	"github.com/grafana/go-offsets-tracker/pkg/schema"
+	"github.com/grafana/go-offsets-tracker/pkg/offsets"
 	"github.com/grafana/go-offsets-tracker/pkg/target"
 )
 
 func WriteResults(fileName string, results ...*target.Result) error {
-	offsets := schema.TrackedOffsets{
-		Data: map[string]schema.TrackedStruct{},
+	offsets := offsets.Track{
+		Data: map[string]offsets.Struct{},
 	}
 	for _, r := range results {
 		convertResult(r, &offsets)
@@ -39,12 +39,12 @@ func WriteResults(fileName string, results ...*target.Result) error {
 	return os.WriteFile(fileName, prettyJson.Bytes(), fs.ModePerm)
 }
 
-func convertResult(r *target.Result, offsets *schema.TrackedOffsets) {
-	offsetsMap := make(map[string][]schema.VersionedOffset)
+func convertResult(r *target.Result, track *offsets.Track) {
+	offsetsMap := make(map[string][]offsets.Versioned)
 	for _, vr := range r.ResultsByVersion {
 		for _, od := range vr.OffsetData.DataMembers {
 			key := fmt.Sprintf("%s,%s", od.StructName, od.Field)
-			offsetsMap[key] = append(offsetsMap[key], schema.VersionedOffset{
+			offsetsMap[key] = append(offsetsMap[key], offsets.Versioned{
 				Offset: od.Offset,
 				Since:  vr.Version,
 			})
@@ -65,8 +65,8 @@ func convertResult(r *target.Result, offsets *schema.TrackedOffsets) {
 		})
 
 		hilo := hiLoSemVers{}
-		var om []schema.VersionedOffset
-		var last schema.VersionedOffset
+		var om []offsets.Versioned
+		var last offsets.Versioned
 		for n, off := range offs {
 			hilo.updateModuleVersion(off.Since)
 			// only append versions that changed the field value from its predecessor
@@ -82,15 +82,15 @@ func convertResult(r *target.Result, offsets *schema.TrackedOffsets) {
 	// Append offsets as fields to the existing file map map
 	for key, offs := range offsetsMap {
 		parts := strings.Split(key, ",")
-		strFields, ok := offsets.Data[parts[0]]
+		strFields, ok := track.Data[parts[0]]
 		if !ok {
-			strFields = schema.TrackedStruct{}
-			offsets.Data[parts[0]] = strFields
+			strFields = offsets.Struct{}
+			track.Data[parts[0]] = strFields
 		}
 		hl := fieldVersionsMap[key]
-		strFields[parts[1]] = schema.TrackedField{
+		strFields[parts[1]] = offsets.Field{
 			Offsets: offs,
-			Versions: schema.VersionInfo{
+			Versions: offsets.VersionInfo{
 				Oldest: hl.lo.String(),
 				Newest: hl.hi.String(),
 			},
