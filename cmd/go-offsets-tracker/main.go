@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/go-version"
 
-	"github.com/grafana/go-offsets-tracker/pkg/binary"
 	"github.com/grafana/go-offsets-tracker/pkg/target"
 	"github.com/grafana/go-offsets-tracker/pkg/writer"
 )
@@ -80,7 +79,7 @@ func processGoStdlib(input offsets.InputLibs, outFileName string) *target.Result
 		FindVersionsBy(target.GoDevFileVersionsStrategy).
 		DownloadBinaryBy(target.DownloadPreCompiledBinaryFetchStrategy).
 		VersionConstraint(&minimunGoVersion).
-		FindOffsets(fieldsAsDataMembers(goLib.Fields))
+		FindOffsets(goLib)
 	exitOnErr(err, "loading Go standard library offsets")
 	return stdLibOffsets
 }
@@ -94,24 +93,9 @@ func processThirdPartyLib(name string, lib offsets.LibQuery, outFileName string)
 		tData = tData.VersionConstraint(&minVersion)
 	}
 
-	libOffsets, err := tData.FindOffsets(fieldsAsDataMembers(lib.Fields))
+	libOffsets, err := tData.FindOffsets(lib)
 	exitOnErr(err, "loading "+name+" offsets")
 	return libOffsets
-}
-
-// Function kept to keep interfaces' and types compatibility with old version
-// TODO: remove DataMember type and use the simple map form
-func fieldsAsDataMembers(fields map[string][]string) []*binary.DataMember {
-	var out []*binary.DataMember
-	for structName, fieldsList := range fields {
-		for _, fieldName := range fieldsList {
-			out = append(out, &binary.DataMember{
-				StructName: structName,
-				Field:      fieldName,
-			})
-		}
-	}
-	return out
 }
 
 func exitOnErr(err error, str string) {

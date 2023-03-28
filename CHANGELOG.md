@@ -1,5 +1,8 @@
 # Change log
 
+## v0.1.2
+* Enabled optional `inspect` field in input file
+
 ## v0.1.1
 
 * Added Go handling methods to load and search offsets within the file
