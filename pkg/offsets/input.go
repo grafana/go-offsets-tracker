@@ -6,6 +6,12 @@ const GoStdLib = "go"
 type InputLibs map[string]LibQuery
 
 type LibQuery struct {
+	// Inspect provides the path to a Go source file that will be compiled and
+	// will inspect the offsets from the generated executable. If not set, it will
+	// analise the "go" executable for Go stdlib functions, and for third-party libraries,
+	// it will analyse an empty main file that forces the inclusion of the inspected library.
+	Inspect string `json:"inspect"`
+
 	// Versions constraint. E.g. ">= 1.12" will only download versions
 	// larger or equal to 1.12
 	Versions string `json:"versions"`

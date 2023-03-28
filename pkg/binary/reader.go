@@ -2,7 +2,6 @@ package binary
 
 import (
 	"debug/elf"
-	"errors"
 	"os"
 )
 
@@ -20,7 +19,13 @@ type Result struct {
 	DataMembers []*DataMemberOffset
 }
 
-var ErrOffsetsNotFound = errors.New("could not find offset")
+type ErrOffsetsNotFound struct {
+	fieldName string
+}
+
+func (e *ErrOffsetsNotFound) Error() string {
+	return "could not find offsets for " + e.fieldName
+}
 
 func FindOffsets(file *os.File, dataMembers []*DataMember) (*Result, error) {
 	elfF, err := elf.NewFile(file)
@@ -37,7 +42,7 @@ func FindOffsets(file *os.File, dataMembers []*DataMember) (*Result, error) {
 	for _, dm := range dataMembers {
 		offset, found := findDataMemberOffset(dwarfData, dm)
 		if !found {
-			return nil, ErrOffsetsNotFound
+			return nil, &ErrOffsetsNotFound{fieldName: dm.StructName + " " + dm.Field}
 		} else {
 			result.DataMembers = append(result.DataMembers, &DataMemberOffset{
 				DataMember: dm,

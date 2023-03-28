@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/grafana/go-offsets-tracker/pkg/offsets"
+
 	"github.com/hashicorp/go-version"
 
 	"github.com/grafana/go-offsets-tracker/pkg/binary"
@@ -65,7 +67,10 @@ func (t *targetData) DownloadBinaryBy(strategy BinaryFetchStrategy) *targetData 
 	return t
 }
 
-func (t *targetData) FindOffsets(dm []*binary.DataMember) (*Result, error) {
+func (t *targetData) FindOffsets(goLib offsets.LibQuery) (*Result, error) {
+
+	dm := fieldsAsDataMembers(goLib.Fields)
+
 	fmt.Printf("%s: Discovering available versions\n", t.name)
 	vers, err := t.findVersions()
 	if err != nil {
@@ -91,17 +96,15 @@ func (t *targetData) FindOffsets(dm []*binary.DataMember) (*Result, error) {
 		}
 
 		fmt.Printf("%s: Downloading version %s\n", t.name, v)
-		exePath, dir, err := t.downloadBinary(t.name, v)
+		exePath, dir, err := t.downloadBinary(t.name, goLib.Inspect, v)
 		if err != nil {
 			return nil, err
 		}
 
 		fmt.Printf("%s: Analyzing binary for version %s\n", t.name, v)
 		res, err := t.analyzeFile(exePath, dm)
-		if err == binary.ErrOffsetsNotFound {
-			fmt.Printf("%s: could not find offsets for version %s\n", t.name, v)
-		} else if err != nil {
-			return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("%s (version: %s): %w", t.name, v, err)
 		} else {
 			result.ResultsByVersion = append(result.ResultsByVersion, &VersionedResult{
 				Version:    v,
@@ -113,6 +116,21 @@ func (t *targetData) FindOffsets(dm []*binary.DataMember) (*Result, error) {
 	}
 
 	return result, nil
+}
+
+// Function kept to keep interfaces' and types compatibility with old version
+// TODO: remove DataMember type and use the simple map form
+func fieldsAsDataMembers(fields map[string][]string) []*binary.DataMember {
+	var out []*binary.DataMember
+	for structName, fieldsList := range fields {
+		for _, fieldName := range fieldsList {
+			out = append(out, &binary.DataMember{
+				StructName: structName,
+				Field:      fieldName,
+			})
+		}
+	}
+	return out
 }
 
 func (t *targetData) analyzeFile(exePath string, dm []*binary.DataMember) (*binary.Result, error) {
@@ -166,11 +184,11 @@ func (t *targetData) findVersions() ([]string, error) {
 	return filteredVers, nil
 }
 
-func (t *targetData) downloadBinary(modName string, version string) (string, string, error) {
+func (t *targetData) downloadBinary(modName, inspectFile, version string) (string, string, error) {
 	if t.BinaryFetchStrategy == WrapAsGoAppBinaryFetchStrategy {
 		return downloader.DownloadBinary(modName, version)
 	} else if t.BinaryFetchStrategy == DownloadPreCompiledBinaryFetchStrategy {
-		return downloader.DownloadBinaryFromRemote(modName, version)
+		return downloader.DownloadBinaryFromRemote(inspectFile, version)
 	}
 
 	return "", "", fmt.Errorf("unsupported binary fetch strategy")
