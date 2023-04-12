@@ -1,7 +1,9 @@
 package main
 
 import (
-	_ "%s"
+{{ range . }}
+	_ "{{.}}"
+{{ end }}
 )
 
 func main() {}

@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	"log"
+	"os"
 	"path"
+	"text/template"
 
 	"github.com/grafana/go-offsets-tracker/pkg/utils"
 )
@@ -20,7 +23,7 @@ var (
 	goMain string
 )
 
-func DownloadBinary(modName string, version string) (string, string, error) {
+func DownloadBinary(modName string, version string, packages []string) (string, string, error) {
 	dir, err := ioutil.TempDir("", appName)
 	if err != nil {
 		return "", "", err
@@ -32,19 +35,32 @@ func DownloadBinary(modName string, version string) (string, string, error) {
 		return "", "", err
 	}
 
-	goMainContent := fmt.Sprintf(goMain, modName)
-	err = ioutil.WriteFile(path.Join(dir, "main.go"), []byte(goMainContent), fs.ModePerm)
+	mainFile, err := os.OpenFile(path.Join(dir, "main.go"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, fs.ModePerm)
 	if err != nil {
+		return "", "", fmt.Errorf("can't create main.go file: %w", err)
+	}
+	defer mainFile.Close()
+	tmpl, err := template.New("main-file").Parse(goMain)
+	if err != nil {
+		panic(err)
+	}
+	// If no explicit packages are provided, we render the main.go import with the module name.
+	if len(packages) == 0 {
+		packages = []string{modName}
+	}
+	if err := tmpl.Execute(mainFile, packages); err != nil {
+		panic(err)
+	}
+
+	output, err := utils.RunCommand("go mod tidy -compat=1.17", dir)
+	if err != nil {
+		log.Println("go mod tidy returned error: \n", output)
 		return "", "", err
 	}
 
-	err, _, _ = utils.RunCommand("go mod tidy -compat=1.17", dir)
+	output, err = utils.RunCommand("GOOS=linux GOARCH=amd64 go build", dir)
 	if err != nil {
-		return "", "", err
-	}
-
-	err, _, _ = utils.RunCommand("GOOS=linux GOARCH=amd64 go build", dir)
-	if err != nil {
+		log.Println("go build returned error: \n", output)
 		return "", "", err
 	}
 
