@@ -52,8 +52,9 @@ func DownloadBinaryFromRemote(inspectFile string, version string) (string, strin
 		return "", "", err
 	}
 
-	err, _, _ = utils.RunCommand("tar -xf go.tar.gz -C .", dir)
+	output, err := utils.RunCommand("tar -xf go.tar.gz -C .", dir)
 	if err != nil {
+		log.Println("error uncompressing go.tar.gz:\n", output)
 		return "", "", err
 	}
 	goCMD := fmt.Sprintf("%s/go/bin/go", dir)
@@ -83,15 +84,15 @@ func compileProvidedFile(goVersion, goRootDir, goCMD, inspectFile string) (strin
 		return "", "", fmt.Errorf("writing main file: %w", err)
 	}
 
-	err, _, stderr := utils.RunCommand("go mod tidy -compat=1.17", dir)
+	output, err := utils.RunCommand("go mod tidy -compat=1.17", dir)
 	if err != nil {
-		log.Printf("go mod tidy returned standard error:\n%s", stderr)
+		log.Printf("go mod tidy returned standard error:\n%s", output)
 		return "", "", err
 	}
 
-	err, _, stderr = utils.RunCommand(fmt.Sprintf(`GOROOT="%s" GOOS=linux GOARCH=amd64 %s build`, goRootDir, goCMD), dir)
+	output, err = utils.RunCommand(fmt.Sprintf(`GOROOT="%s" GOOS=linux GOARCH=amd64 %s build`, goRootDir, goCMD), dir)
 	if err != nil {
-		log.Printf("go build returned standard error:\n%s", stderr)
+		log.Printf("go build returned standard error:\n%s", output)
 		return "", "", err
 	}
 

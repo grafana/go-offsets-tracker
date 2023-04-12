@@ -86,8 +86,11 @@ func processGoStdlib(input offsets.InputLibs, outFileName string) *target.Result
 
 func processThirdPartyLib(name string, lib offsets.LibQuery, outFileName string) *target.Result {
 	tData := target.New(name, outFileName)
+	tData = tData.Packages(lib.Packages)
 
-	if lib.Versions != "" {
+	if lib.Branch != "" {
+		tData = tData.Branch(lib.Branch)
+	} else if lib.Versions != "" {
 		minVersion, err := version.NewConstraint(lib.Versions)
 		exitOnErr(err, "invalid Lib version constraint")
 		tData = tData.VersionConstraint(&minVersion)

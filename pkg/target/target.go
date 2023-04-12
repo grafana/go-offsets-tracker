@@ -39,6 +39,8 @@ type targetData struct {
 	name                string
 	VersionsStrategy    VersionsStrategy
 	BinaryFetchStrategy BinaryFetchStrategy
+	packages            []string
+	branch              string
 	versionConstraint   *version.Constraints
 	Cache               *cache.Cache
 }
@@ -50,6 +52,16 @@ func New(name string, fileName string) *targetData {
 		BinaryFetchStrategy: WrapAsGoAppBinaryFetchStrategy,
 		Cache:               cache.NewCache(fileName),
 	}
+}
+
+func (t *targetData) Packages(names []string) *targetData {
+	t.packages = names
+	return t
+}
+
+func (t *targetData) Branch(branchName string) *targetData {
+	t.branch = branchName
+	return t
 }
 
 func (t *targetData) VersionConstraint(constraint *version.Constraints) *targetData {
@@ -71,10 +83,16 @@ func (t *targetData) FindOffsets(goLib offsets.LibQuery) (*Result, error) {
 
 	dm := fieldsAsDataMembers(goLib.Fields)
 
-	fmt.Printf("%s: Discovering available versions\n", t.name)
-	vers, err := t.findVersions()
-	if err != nil {
-		return nil, err
+	var vers []string
+	if t.branch != "" {
+		vers = []string{t.branch}
+	} else {
+		fmt.Printf("%s: Discovering available versions\n", t.name)
+		var err error
+		vers, err = t.findVersions()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	result := &Result{
@@ -181,12 +199,15 @@ func (t *targetData) findVersions() ([]string, error) {
 		}
 	}
 
+	if len(filteredVers) == 0 {
+		return nil, fmt.Errorf("no tags found for %q. Try expanding the constraint or set the name of a given branch", t.name)
+	}
 	return filteredVers, nil
 }
 
 func (t *targetData) downloadBinary(modName, inspectFile, version string) (string, string, error) {
 	if t.BinaryFetchStrategy == WrapAsGoAppBinaryFetchStrategy {
-		return downloader.DownloadBinary(modName, version)
+		return downloader.DownloadBinary(modName, version, t.packages)
 	} else if t.BinaryFetchStrategy == DownloadPreCompiledBinaryFetchStrategy {
 		return downloader.DownloadBinaryFromRemote(inspectFile, version)
 	}

@@ -20,3 +20,15 @@ func MustParse(v string) *version.Version {
 	}
 	return p
 }
+
+var zero = MustParse("v0.0.0")
+
+// OrZero parses and returns the semantic version passed as argument. If the version format is
+// incorrect, it returns "0.0.0"
+func OrZero(v string) *version.Version {
+	ver, err := version.NewVersion(v)
+	if err == nil {
+		return ver
+	}
+	return zero
+}

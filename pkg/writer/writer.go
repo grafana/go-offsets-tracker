@@ -46,7 +46,7 @@ func convertResult(r *target.Result, track *offsets.Track) {
 			key := fmt.Sprintf("%s,%s", od.StructName, od.Field)
 			offsetsMap[key] = append(offsetsMap[key], offsets.Versioned{
 				Offset: od.Offset,
-				Since:  vr.Version,
+				Since:  versions.OrZero(vr.Version).String(),
 			})
 		}
 	}
@@ -105,7 +105,9 @@ type hiLoSemVers struct {
 }
 
 func (hl *hiLoSemVers) updateModuleVersion(vr string) {
-	ver := versions.MustParse(vr)
+	// if at this point the version does not parse, this means data is downloaded
+	// from a branch instead of a tag. Then we default versin to "0.0.0"
+	ver := versions.OrZero(vr)
 
 	if hl.lo == nil || ver.LessThan(hl.lo) {
 		hl.lo = ver
