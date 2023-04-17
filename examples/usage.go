@@ -13,7 +13,7 @@ func main() {
 	}
 	structFields := [][]string{
 		{"google.golang.org/grpc/internal/transport.Stream", "method", "1.16.7"},
-		{"google.golang.org/genproto/googleapis/rpc/status.Status", "Code", "0.0.0"},
+		{"google.golang.org/genproto/googleapis/rpc/status.Status", "Code", "v0.1.0"},
 	}
 	for _, sf := range structFields {
 		structName, fieldName, version := sf[0], sf[1], sf[2]
