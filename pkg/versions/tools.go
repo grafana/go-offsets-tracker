@@ -3,7 +3,7 @@ package versions
 import "github.com/hashicorp/go-version"
 
 func Between(target, lowerBound, higherBound string) bool {
-	v := MustParse(target)
+	v := OrZero(target)
 
 	return v.GreaterThanOrEqual(MustParse(lowerBound)) &&
 		v.LessThanOrEqual(MustParse(higherBound))

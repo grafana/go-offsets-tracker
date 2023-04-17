@@ -1,5 +1,8 @@
 # Change log
 
+## v0.1.4
+* Fixes a crash when trying to regenerate an offsets file containing a non-semantic branch name.
+
 ## v0.1.3
 * Changes in the [input file JSON schema](examples/input_file.json):
   - The `"branch"` property will override the `"versions"` constraint and will directly
