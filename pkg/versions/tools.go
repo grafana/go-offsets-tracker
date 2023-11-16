@@ -1,6 +1,10 @@
 package versions
 
-import "github.com/hashicorp/go-version"
+import (
+	"regexp"
+
+	"github.com/hashicorp/go-version"
+)
 
 func Between(target, lowerBound, higherBound string) bool {
 	v := OrZero(target)
@@ -31,4 +35,18 @@ func OrZero(v string) *version.Version {
 		return ver
 	}
 	return zero
+}
+
+var disallowedChars = regexp.MustCompile(`[^v0-9A-Za-z\-~.]`)
+
+// CleanVersion fixes some versions that might not follow the A.B.C-prefix syntax. In that case we fix them
+// to avoid hashicorp's go-version library to crash.
+func CleanVersion(v string) string {
+	// We will cut any disallowed suffix
+	idx := disallowedChars.FindIndex([]byte(v))
+	if len(idx) == 0 {
+		return v
+	} else {
+		return v[:idx[0]]
+	}
 }

@@ -76,6 +76,8 @@ func (c *Cache) IsAllInCache(version string, dataMembers []*binary.DataMember) (
 // searchOffset searches an offset from the newest field whose version
 // is lower than or equal to the target version
 func searchOffset(field offsets.Field, targetVersion string) (uint64, bool) {
+	targetVersion = versions.CleanVersion(targetVersion)
+
 	target := versions.OrZero(targetVersion)
 
 	// Search from the newest version
