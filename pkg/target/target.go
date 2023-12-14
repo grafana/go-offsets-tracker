@@ -3,6 +3,7 @@ package target
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/grafana/go-offsets-tracker/pkg/offsets"
 
@@ -120,7 +121,7 @@ func (t *targetData) FindOffsets(goLib offsets.LibQuery) (*Result, error) {
 		}
 
 		fmt.Printf("%s: Analyzing binary for version %s\n", t.name, v)
-		res, err := t.analyzeFile(exePath, dm)
+		res, err := t.analyzeFile(v, exePath, dm)
 		if err != nil {
 			return nil, fmt.Errorf("%s (version: %s): %w", t.name, v, err)
 		} else {
@@ -136,29 +137,58 @@ func (t *targetData) FindOffsets(goLib offsets.LibQuery) (*Result, error) {
 	return result, nil
 }
 
+func parseFieldName(f string) (string, string, string) {
+	if strings.HasPrefix(f, "[") {
+		l := strings.Index(f, "]")
+
+		if l > 0 {
+			versionsStr := f[1:l]
+
+			if len(versionsStr) > 0 {
+				versions := strings.Split(versionsStr, ",")
+
+				if len(versions) > 0 {
+					if len(versions) > 1 {
+						return f[l+1:], versions[0], versions[1]
+					} else {
+						return f[l+1:], versions[0], ""
+					}
+				}
+			}
+		}
+	}
+
+	return f, "", ""
+}
+
 // Function kept to keep interfaces' and types compatibility with old version
 // TODO: remove DataMember type and use the simple map form
 func fieldsAsDataMembers(fields map[string][]string) []*binary.DataMember {
 	var out []*binary.DataMember
+
 	for structName, fieldsList := range fields {
 		for _, fieldName := range fieldsList {
+			field, minVer, maxVer := parseFieldName(fieldName)
+
 			out = append(out, &binary.DataMember{
 				StructName: structName,
-				Field:      fieldName,
+				Field:      field,
+				MinVersion: minVer,
+				MaxVersion: maxVer,
 			})
 		}
 	}
 	return out
 }
 
-func (t *targetData) analyzeFile(exePath string, dm []*binary.DataMember) (*binary.Result, error) {
+func (t *targetData) analyzeFile(version, exePath string, dm []*binary.DataMember) (*binary.Result, error) {
 	f, err := os.Open(exePath)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	res, err := binary.FindOffsets(f, dm)
+	res, err := binary.FindOffsets(version, f, dm)
 	if err != nil {
 		return nil, err
 	}
