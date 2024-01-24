@@ -3,6 +3,7 @@ package downloader
 import (
 	_ "embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -23,7 +24,7 @@ var (
 	goMain string
 )
 
-func DownloadBinary(modName string, version string, packages []string) (string, string, error) {
+func DownloadBinary(modName string, version string, inspectFile string, packages []string) (string, string, error) {
 	dir, err := ioutil.TempDir("", appName)
 	if err != nil {
 		return "", "", err
@@ -35,21 +36,40 @@ func DownloadBinary(modName string, version string, packages []string) (string, 
 		return "", "", err
 	}
 
-	mainFile, err := os.OpenFile(path.Join(dir, "main.go"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, fs.ModePerm)
-	if err != nil {
-		return "", "", fmt.Errorf("can't create main.go file: %w", err)
-	}
-	defer mainFile.Close()
-	tmpl, err := template.New("main-file").Parse(goMain)
-	if err != nil {
-		panic(err)
-	}
-	// If no explicit packages are provided, we render the main.go import with the module name.
-	if len(packages) == 0 {
-		packages = []string{modName}
-	}
-	if err := tmpl.Execute(mainFile, packages); err != nil {
-		panic(err)
+	if inspectFile == "" {
+		mainFile, err := os.OpenFile(path.Join(dir, "main.go"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, fs.ModePerm)
+		if err != nil {
+			return "", "", fmt.Errorf("can't create main.go file: %w", err)
+		}
+		defer mainFile.Close()
+		tmpl, err := template.New("main-file").Parse(goMain)
+		if err != nil {
+			panic(err)
+		}
+		// If no explicit packages are provided, we render the main.go import with the module name.
+		if len(packages) == 0 {
+			packages = []string{modName}
+		}
+		if err := tmpl.Execute(mainFile, packages); err != nil {
+			panic(err)
+		}
+	} else {
+		mainFile, err := os.OpenFile(path.Join(dir, "main.go"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, fs.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+		defer mainFile.Close()
+
+		sourceFile, err := os.Open(inspectFile)
+		if err != nil {
+			panic(err)
+		}
+		defer sourceFile.Close()
+
+		_, err = io.Copy(mainFile, sourceFile)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	output, err := utils.RunCommand("go mod tidy -compat=1.17", dir)

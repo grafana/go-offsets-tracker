@@ -237,7 +237,7 @@ func (t *targetData) findVersions() ([]string, error) {
 
 func (t *targetData) downloadBinary(modName, inspectFile, version string) (string, string, error) {
 	if t.BinaryFetchStrategy == WrapAsGoAppBinaryFetchStrategy {
-		return downloader.DownloadBinary(modName, version, t.packages)
+		return downloader.DownloadBinary(modName, version, inspectFile, t.packages)
 	} else if t.BinaryFetchStrategy == DownloadPreCompiledBinaryFetchStrategy {
 		return downloader.DownloadBinaryFromRemote(inspectFile, version)
 	}
